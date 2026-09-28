@@ -1,10 +1,17 @@
 # First-run setup for tk-3de4: installs PySide6 locally, in the background.
 #
+# The install runs as its own detached process (this file with --install, in 3DE's
+# python.exe), started by the ShotGrid Desktop launcher before 3DE opens. 3DE itself
+# never waits for it: its startup script only polls for the finished install and then
+# starts the engine. (v1.0.0 ran pip from inside 3DE's startup, which froze 3DE and
+# kept the File > ShotGrid entry from registering until a restart.)
+#
 # 3DE 8.1 ships Python 3.11 without Qt. tk-core 0.21.7 needs the *full* PySide6
 # (it also loads QtWebEngine), about 500 MB, so it is installed once per computer:
 #   %LOCALAPPDATA%\NFA\3de\pyside6\6.5.3\
 # Local disk, not a network share: Qt loads hundreds of DLLs at every start.
-# This module must not import Qt or sgtk — it runs before either exists.
+# This module must not import Qt or sgtk — it runs before either exists, and it must
+# stay Python 3.7 compatible (ShotGrid Desktop imports it in the launcher).
 import os
 import shutil
 import subprocess
@@ -70,69 +77,79 @@ def log_path():
     return os.path.join(base_dir(), "install_%s.log" % PYSIDE_VERSION)
 
 
-class Installer(object):
-    """pip install into a .partial folder; renamed into place only when it succeeded,
-    so a cancelled or failed install never looks complete."""
+def installing():
+    """True while an install is running somewhere on this computer (fresh lock file)."""
+    lock = install_dir() + ".lock"
+    return os.path.isfile(lock) and time.time() - os.path.getmtime(lock) < LOCK_MAX_AGE
 
-    def __init__(self):
-        self.proc = None
-        self.state = "idle"          # idle | running | busy | done | failed
-        self.message = ""
-        self._log = None
-        self._lock = install_dir() + ".lock"
-        self._partial = install_dir() + ".partial"
 
-    def start(self):
-        os.makedirs(base_dir(), exist_ok=True)
-        if os.path.isfile(self._lock) and time.time() - os.path.getmtime(self._lock) < LOCK_MAX_AGE:
-            self.state = "busy"      # another 3DE on this computer is already installing
-            return self.state
-        py = python_exe()
-        if not py:
-            self.state, self.message = "failed", "3DE's python.exe was not found next to %s" % sys.executable
-            return self.state
-        with open(self._lock, "w") as f:
-            f.write(str(os.getpid()))
-        shutil.rmtree(self._partial, ignore_errors=True)
-        self._log = open(log_path(), "w")
-        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-        env = dict(os.environ)
-        for key in ("PYTHONPATH", "PYTHONHOME"):
-            env.pop(key, None)
-        self.proc = subprocess.Popen(
-            [py, "-m", "pip", "install", "--disable-pip-version-check", "--no-warn-script-location",
-             "PySide6==%s" % PYSIDE_VERSION, "--target", self._partial],
-            stdout=self._log, stderr=subprocess.STDOUT, creationflags=flags, env=env)
-        self.state = "running"
-        return self.state
+def python_for_3de(exec_path):
+    """3DE's python.exe, derived from the 3DE executable (…\\bin\\3DE4.exe)."""
+    root = os.path.dirname(os.path.dirname(exec_path))
+    exe = os.path.join(root, "sys_data", "py311_inst", "python.exe")
+    return exe if os.path.isfile(exe) else None
 
-    def poll(self):
-        """Call regularly. Returns the state; 'done' once PySide6 is in place."""
-        if self.state == "busy":
-            if find_pyside():
-                self.state = "done"
-            elif not os.path.isfile(self._lock):
-                self.state = "failed"
-                self.message = "The install in the other 3DE stopped. Restart 3DE to try again."
-            return self.state
-        if self.state != "running" or self.proc.poll() is None:
-            return self.state
+
+def start_detached_install(py):
+    """Start the install as its own process, detached from whoever calls this.
+
+    Called from the ShotGrid Desktop launcher *before* 3DE starts, so 3DE never
+    waits for pip. Returns True when an install was started or is already running."""
+    if find_pyside():
+        return False
+    if installing():
+        return True
+    if not py or not os.path.isfile(py):
+        return False
+    os.makedirs(base_dir(), exist_ok=True)
+    flags = 0
+    for name in ("DETACHED_PROCESS", "CREATE_NEW_PROCESS_GROUP", "CREATE_NO_WINDOW"):
+        flags |= getattr(subprocess, name, 0)
+    env = dict(os.environ)
+    for key in ("PYTHONPATH", "PYTHONHOME"):
+        env.pop(key, None)
+    subprocess.Popen([py, os.path.abspath(__file__), "--install"],
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     creationflags=flags, close_fds=True, env=env)
+    return True
+
+
+def run_install():
+    """The install itself. Runs in 3DE's python.exe as a separate process (--install)."""
+    os.makedirs(base_dir(), exist_ok=True)
+    lock = install_dir() + ".lock"
+    partial = install_dir() + ".partial"
+    if installing():
+        return 0
+    with open(lock, "w") as f:
+        f.write(str(os.getpid()))
+    code = 1
+    try:
+        shutil.rmtree(partial, ignore_errors=True)
+        with open(log_path(), "w") as log:
+            log.write("NFA tk-3de4: installing PySide6 %s into %s\n" % (PYSIDE_VERSION, install_dir()))
+            log.flush()
+            code = subprocess.call(
+                [sys.executable, "-m", "pip", "install", "--disable-pip-version-check",
+                 "--no-warn-script-location", "PySide6==%s" % PYSIDE_VERSION, "--target", partial],
+                stdout=log, stderr=subprocess.STDOUT)
+            if code == 0 and _complete(partial):
+                target = install_dir()
+                shutil.rmtree(target, ignore_errors=True)
+                os.replace(partial, target)
+                with open(os.path.join(target, MARKER), "w") as f:
+                    f.write(time.strftime("%Y-%m-%d %H:%M:%S"))
+                log.write("\nDone.\n")
+            else:
+                log.write("\nFailed (pip exit code %s).\n" % code)
+                code = code or 1
+    finally:
         try:
-            self._log.close()
-        except Exception:
-            pass
-        if self.proc.returncode == 0 and _complete(self._partial):
-            target = install_dir()
-            shutil.rmtree(target, ignore_errors=True)
-            os.replace(self._partial, target)
-            with open(os.path.join(target, MARKER), "w") as f:
-                f.write(time.strftime("%Y-%m-%d %H:%M:%S"))
-            self.state = "done"
-        else:
-            self.state = "failed"
-            self.message = "pip stopped with code %s. See %s" % (self.proc.returncode, log_path())
-        try:
-            os.remove(self._lock)
+            os.remove(lock)
         except OSError:
             pass
-        return self.state
+    return code
+
+
+if __name__ == "__main__" and "--install" in sys.argv:
+    sys.exit(run_install())

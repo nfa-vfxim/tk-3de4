@@ -10,6 +10,25 @@ Uses three-decimal versioning: `MAJOR.MINOR.PATCH`, same rules as the NFA Shot M
 - **MINOR** — a new feature or visible behavior change that stays backward compatible.
 - **MAJOR** — a breaking or structural change (config, folder layout, or a rebuild).
 
+## v1.0.1 — First-start install no longer freezes 3DE
+
+By Luuk Kamphuis.
+
+- **Fix: 3DE froze during the first-start PySide6 install**, and the
+  File → ShotGrid entry was missing afterwards until 3DE was restarted.
+  v1.0.0 started pip from inside 3DE's startup script and showed requesters
+  while 3DE was still starting up.
+- The install now starts in **ShotGrid Desktop's launcher**, before 3DE
+  opens, as a separate detached process (`nfa_3de_bootstrap.py --install`
+  in 3DE's own python.exe). 3DE opens straight away and is usable.
+- 3DE's startup script no longer blocks or shows anything. A light timer
+  checks every 3 seconds whether the install is done and then starts the
+  engine; File → ShotGrid... works from that moment, no restart needed.
+- Clicking File → ShotGrid... while the install is still running says so.
+  If the install failed, it says where the log is.
+- If the launcher could not start the install, the startup script starts it
+  itself (same detached process).
+
 ## v1.0.0 — Ready for the pipeline
 
 By Luuk Kamphuis.

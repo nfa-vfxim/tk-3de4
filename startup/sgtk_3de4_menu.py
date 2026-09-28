@@ -41,15 +41,15 @@ def _sgtk_3de4_engine():
     import nfa_3de_bootstrap as boot
     found = boot.find_pyside()
     if not found:
-        inst = getattr(__main__, "_nfa_3de_installer", None)
-        if inst is not None and inst.state in ("running", "busy"):
+        if boot.installing():
             tde4.postQuestionRequester("NFA ShotGrid",
-                                       "The ShotGrid components are still being installed.\n"
-                                       "This happens only once; please try again in a few minutes.", "OK")
+                                       "The ShotGrid components are still being installed in the background.\n"
+                                       "This happens only once per computer and takes a few minutes.\n"
+                                       "ShotGrid starts by itself when it is done; then try again.", "OK")
         else:
             tde4.postQuestionRequester("NFA ShotGrid",
-                                       "The ShotGrid components are not installed.\n"
-                                       "Restart 3DE from ShotGrid Desktop to install them.", "OK")
+                                       "The ShotGrid components could not be installed.\n"
+                                       "Restart 3DE from ShotGrid Desktop to try again. Log:\n%s" % boot.log_path(), "OK")
         return None
     boot.add_to_path(found)
     ctx = sgtk.context.deserialize(os.environ["SGTK_CONTEXT"])

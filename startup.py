@@ -2,6 +2,7 @@
 import glob
 import os
 import re
+import sys
 
 import sgtk
 from sgtk.platform import LaunchInformation, SoftwareLauncher, SoftwareVersion
@@ -36,6 +37,18 @@ class TDE4Launcher(SoftwareLauncher):
 
         # Where the 3DE startup scripts find the bootstrap (python/nfa_3de_bootstrap.py).
         env["NFA_TK3DE4_ROOT"] = self.disk_location
+
+        # First start on this computer: begin the PySide6 install now, detached, so 3DE
+        # opens straight away and never waits for pip. The engine starts once it is done.
+        try:
+            pydir = os.path.join(self.disk_location, "python")
+            if pydir not in sys.path:
+                sys.path.insert(0, pydir)
+            import nfa_3de_bootstrap as boot
+            if boot.start_detached_install(boot.python_for_3de(exec_path)):
+                self.logger.info("tk-3de4: PySide6 install running in the background")
+        except Exception:
+            self.logger.exception("tk-3de4: could not start the PySide6 install")
         pyside = self.get_setting("pyside_path")
         if pyside:
             env["NFA_3DE_PYSIDE_PATH"] = os.path.expandvars(pyside)

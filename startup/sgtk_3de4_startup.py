@@ -45,44 +45,27 @@ def _tk3de4_startup():
         _tk3de4_start_engine()
         return
 
-    # First run on this computer: install PySide6 in the background, start the engine after.
-    inst = boot.Installer()
-    state = inst.start()
-    __main__._nfa_3de_installer = inst
-    _tk3de4_log("PySide6 missing, installer: %s %s" % (state, inst.message))
-    if state == "failed":
-        tde4.postQuestionRequester("NFA ShotGrid", "Could not install the ShotGrid components:\n%s" % inst.message, "OK")
-        return
-    tde4.postQuestionRequester(
-        "NFA ShotGrid",
-        "First start on this computer: the ShotGrid components (PySide6, about 500 MB)\n"
-        "are being installed in the background. This happens only once and takes a few minutes.\n\n"
-        "You can keep working. The ShotGrid menu becomes available when it is done.",
-        "OK")
+    # First start on this computer. The launcher already started the PySide6 install
+    # (detached); start it here only if it did not. Nothing in here may block or open a
+    # requester: 3DE is still starting up. A light timer checks every few seconds and
+    # starts the engine once PySide6 is in place (the engine then takes over the timer).
+    if not boot.installing():
+        boot.start_detached_install(boot.python_exe())
+    _tk3de4_log("PySide6 not installed yet; waiting for the background install")
 
     def _poll(*args):
         try:
-            s = inst.poll()
-            if s in ("running", "busy"):
+            path = boot.find_pyside()
+            if not path:
                 return
-            try:
-                tde4.removeTimerCallback()
-            except Exception:
-                pass
-            if s == "done":
-                boot.add_to_path(boot.find_pyside())
-                _tk3de4_start_engine()      # the engine installs its own Qt timer
-                tde4.postQuestionRequester("NFA ShotGrid",
-                                           "ShotGrid is ready. Open it with File > ShotGrid...", "OK")
-            else:
-                _tk3de4_log("PySide6 install failed: %s" % inst.message)
-                tde4.postQuestionRequester("NFA ShotGrid",
-                                           "Installing the ShotGrid components failed.\n%s" % inst.message, "OK")
+            boot.add_to_path(path)
+            _tk3de4_start_engine()
+            _tk3de4_log("PySide6 installed; engine started")
         except Exception:
             _tk3de4_log("install poll error:\n" + traceback.format_exc())
 
     __main__._nfa_3de_install_poll = _poll
-    tde4.setTimerCallbackFunction("_nfa_3de_install_poll", 2000)
+    tde4.setTimerCallbackFunction("_nfa_3de_install_poll", 3000)
 
 
 _tk3de4_log("startup script started")
