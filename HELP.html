@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NFA ShotGrid for 3DEqualizer — Help</title>
+<style>
+  :root {
+    --bg: #1e1e1e;
+    --card: #262626;
+    --card-2: #2e2e2e;
+    --line: #3a3a3a;
+    --ink: #e2e2e2;
+    --ink-dim: #9a9a9a;
+    --accent: #6a9fd0;
+    --green: #4f9a63;
+    --red: #b8564f;
+    --grey: #555;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f4f5f6;
+      --card: #ffffff;
+      --card-2: #f0f1f3;
+      --line: #dcdee1;
+      --ink: #1d2126;
+      --ink-dim: #61676e;
+      --accent: #2c6ba8;
+      --green: #2f7d45;
+      --red: #a83a33;
+      --grey: #9aa0a6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 16px 64px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.6 -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+
+  header {
+    padding: 40px 0 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 36px;
+  }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .kicker {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.4px;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 10px;
+  }
+  .lede { color: var(--ink-dim); margin: 12px 0 0; max-width: 62ch; }
+
+  h2 {
+    font-size: 19px; margin: 44px 0 14px; letter-spacing: -0.01em;
+    padding-top: 6px;
+  }
+  h3 { font-size: 15px; margin: 26px 0 8px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  a { color: var(--accent); }
+
+  figure {
+    margin: 22px 0 26px; padding: 18px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  }
+  figure svg { display: block; width: 100%; max-width: 100%; height: auto; }
+  figcaption {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-dim);
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 6px 0 22px; font-size: 14px; }
+  th, td {
+    text-align: left; vertical-align: top;
+    padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line);
+  }
+  th { font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-dim); font-weight: 600; }
+  td:first-child { white-space: nowrap; padding-right: 18px; }
+  td p { margin: 0; }
+
+  .pill {
+    display: inline-block; padding: 2px 9px; border-radius: 9px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.4px; white-space: nowrap;
+  }
+  .p-plate { background: #26333c; color: #8fc2e0; }
+  .p-cg    { background: #302a3c; color: #b8a8dd; }
+  .p-play  { background: #35301f; color: #d6bd8a; }
+  .p-rend  { background: #24343a; color: #93cdd4; }
+  .p-comp  { background: #26352c; color: #8fcba3; }
+  .p-none  { background: #2a2a2c; color: #8e8e93; }
+  .p-name  { background: #2b2e3a; color: #a9b4d8; }
+  .p-step  { background: #26333c; color: #8fc2e0; }
+  .p-task  { background: #302a3c; color: #b8a8dd; }
+
+  .dot {
+    display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+    vertical-align: -1px; margin-right: 8px;
+  }
+  .d-green { background: #4f9a63; box-shadow: 0 0 0 1px #6fbf85 inset; }
+  .d-red   { background: #b8564f; box-shadow: 0 0 0 1px #d4756e inset; }
+  .d-empty { background: transparent; box-shadow: 0 0 0 1px #5a5a5a inset; }
+
+  .btn {
+    display: inline-block; padding: 4px 11px; border-radius: 7px;
+    font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap;
+  }
+  .b-green { background: #39704f; color:#f0f6f2; }
+  .b-red   { background: #332828; color:#d99a91; }
+  .b-purple{ background: #332828; color:#d99a91; }
+  .b-blue  { background: #252f3a; color:#8fb6dd; }
+  .b-grey  { background: #2a2a2c; color:#9c9ca3; }
+  .b-icon  { background: #2a2a2c; color:#9c9ca3; }
+  .b-dark  { background: #2a2a2c; color:#9c9ca3; }
+
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--card); padding: 12px 16px; margin: 20px 0;
+    border-radius: 0 8px 8px 0; font-size: 14px;
+  }
+  .note strong { color: var(--ink); }
+
+  code {
+    font: 13px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--card-2); padding: 1px 5px; border-radius: 4px;
+  }
+
+  footer {
+    margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--ink-dim);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">VFXIM Pipeline · 3DEqualizer</div>
+  <h1>NFA ShotGrid for 3DEqualizer</h1>
+  <p class="lede">
+    3DEqualizer 8.1 connected to ShotGrid: start 3DE from ShotGrid Desktop, and your tracks open and save
+    in the right place with the right name — just like in Maya, Houdini and Nuke.
+  </p>
+</header>
+
+<h2>Starting</h2>
+<p>
+  Always start 3DE from <strong>ShotGrid Desktop</strong>, preferably from your <strong>task</strong>
+  (for example Matchmove on a shot). That way 3DE knows which shot you are working on. If you start 3DE
+  from the Start menu, there is no ShotGrid connection.
+</p>
+<p>
+  Open the ShotGrid window with <code>File → ShotGrid...</code> in 3DE. It opens in the middle of your
+  main screen and stays on top of 3DE.
+</p>
+<p>
+  Choosing <code>Exit</code> asks for confirmation first, because it sits right below <code>File</code>.
+</p>
+<p>
+  The very first time you start 3DE on a computer, it installs the ShotGrid components (PySide6, about
+  500 MB) in the background. That takes a few minutes and happens only once per computer. You can keep
+  working; the ShotGrid menu works as soon as it is done.
+</p>
+
+<h2>The window</h2>
+<table>
+  <tr><th>Part</th><th>Meaning</th></tr>
+  <tr>
+    <td><strong>SH010_010</strong></td>
+    <td>The shot (or project) you are working in, with the project and type below it.</td>
+  </tr>
+  <tr>
+    <td><span class="pill p-step">MATCHMOVE</span> <span class="pill p-task">CAMTRACK</span></td>
+    <td>The step and task from ShotGrid. <span class="pill p-none">NO TASK</span> means 3DE was started at project level; pick a task with File Open first.</td>
+  </tr>
+  <tr>
+    <td>Open: …</td>
+    <td>The <code>.3de</code> file that is open right now, or that the project has not been saved yet.</td>
+  </tr>
+</table>
+
+<h2>Shot Overview</h2>
+<p>
+  <span class="btn b-blue">Shot Overview</span> lists every shot of the project with its thumbnail (the same
+  thumbnails as the NFA Shot Manager in Nuke) and its matchmove status:
+</p>
+<table>
+  <tr><th>Badge</th><th>Meaning</th></tr>
+  <tr><td><span class="pill p-plate">PLATE</span></td><td>A plate was found in <code>02_source</code>; with more than one it says how many. <span class="pill p-none">NO PLATE</span>: none yet.</td></tr>
+  <tr><td><span class="pill p-rend">UNDIST v2</span></td><td>The newest undistorted plate in the plate's <code>undistort</code> folder.</td></tr>
+  <tr><td><span class="pill" style="background:#2b3431;color:#93d0bb">TRACK v3</span></td><td>The newest 3DE project (<code>.3de</code>) for this shot. <span class="pill p-none">NO TRACK</span>: not tracked yet.</td></tr>
+  <tr><td><span class="pill p-name">LUUK K.</span></td><td>Who is on the Matchmove task. Your own name alone when you are one of them; otherwise <code>NAME +1</code>.</td></tr>
+</table>
+<p>
+  Shots without a thumbnail get one automatically: a Nuke runs in the background and makes it the same way
+  the Shot Manager does, so both tools share the same pictures. You can keep working while it runs.
+  A popup shows the progress; click <span class="btn b-grey">Continue without thumbnails</span> to stop it.
+</p>
+<p>
+  Pick a shot and click <span class="btn b-green">Open Shot</span> (or double-click it): 3DE switches to that
+  shot's Matchmove task and opens the newest track. Use <em>My shots only</em> to see just your own shots.
+</p>
+
+<h2>The buttons</h2>
+<table>
+  <tr><th>Button</th><th>Does</th></tr>
+  <tr>
+    <td><span class="btn b-green">File Open</span></td>
+    <td>Pick a shot and task and open an existing track, or start a new one. Also switches 3DE's context to that task.</td>
+  </tr>
+  <tr>
+    <td><span class="btn b-red">File Save</span></td>
+    <td>Saves your track in the pipeline as a new version (<code>v001</code>, <code>v002</code>, …). The first time, pick a name such as <code>main</code>.</td>
+  </tr>
+  <tr>
+    <td><span class="btn b-blue">Shot Overview</span></td>
+    <td>All shots with thumbnails and matchmove status (see below).</td>
+  </tr>
+  <tr>
+    <td><span class="btn b-grey">Load Plate</span></td>
+    <td>Loads a plate of this shot as a camera (see below).</td>
+  </tr>
+  <tr>
+    <td><span class="btn b-red">Export to Nuke</span></td>
+    <td>Exports the lens distortion node for Nuke (see below).</td>
+  </tr>
+  <tr>
+    <td><span class="btn b-grey">Work Area Info...</span></td>
+    <td>Other ShotGrid tools, grouped per app.</td>
+  </tr>
+  <tr>
+    <td><span class="btn b-blue">ShotGrid</span></td>
+    <td>Opens this shot or project in ShotGrid in your browser.</td>
+  </tr>
+  <tr>
+    <td><span class="btn b-blue">Explorer</span></td>
+    <td>Opens the folder of this shot or project.</td>
+  </tr>
+  <tr>
+    <td><span class="btn b-icon">?</span></td>
+    <td>This page.</td>
+  </tr>
+</table>
+
+<h2>Loading a plate</h2>
+<p>
+  Click <span class="btn b-grey">Load Plate</span> (only when started from a shot task). You see the plates
+  of this shot from <code>02_source</code>, with their frame range and whether an undistorted version
+  already exists.
+</p>
+<p>
+  Pick a plate and click <span class="btn b-green">Load in 3DE</span>. The plate is loaded as a camera with
+  the settings from the Matchmove wiki: <strong>first frame 1001</strong>, <strong>25 fps</strong> and
+  <strong>gamma 2.2</strong>. You can change all three before loading.
+</p>
+
+<h2>Exporting to Nuke</h2>
+<p>
+  Done undistorting in 3DE? Click <span class="btn b-red">Export to Nuke</span>. The LD node of the selected
+  camera is exported exactly like <em>File → Export → Nuke LD_3DE4 Lens Distortion Node</em> from the wiki,
+  but straight to the right place and with the same version as your track:
+</p>
+<p><code>04_publish/shots/&lt;seq&gt;/&lt;shot&gt;/&lt;step&gt;/nuke/…_LD_&lt;name&gt;_&lt;camera&gt;_v003.nk</code></p>
+<p>
+  The path is then on your clipboard. In Nuke, bring it in with <code>File → Insert Comp Nodes</code>.
+  Save your 3DE project first (File Save), otherwise the tool does not know the version.
+</p>
+
+<h2>Undistorted plates</h2>
+<p>
+  Undistorted plates are made in 3DE. Put them next to the original plate, in their own
+  <code>undistort</code> folder with a version folder:
+</p>
+<p><code>02_source/&lt;seq&gt;/&lt;shot&gt;/&lt;plate&gt;/undistort/v001/&lt;plate&gt;_undistort_v001.####.exr</code></p>
+<p>
+  So <em>not</em> in the <code>plates</code> folder itself: that holds only the original, so nobody mixes
+  the two up by accident.
+</p>
+
+<h2>Where your files are</h2>
+<p>Work files:</p>
+<p><code>03_workfiles/shots/&lt;seq&gt;/&lt;shot&gt;/&lt;step&gt;/3de/&lt;project&gt;_sc&lt;seq&gt;_&lt;shot&gt;_&lt;step&gt;_work_&lt;name&gt;_v001.3de</code></p>
+<p>Publishes go under <code>04_publish/shots/…/3de/</code> with <code>_pub_</code> in the name.</p>
+<div class="note">
+  <strong>Tip:</strong> the NFA Shot Manager in Nuke shows a
+  <span class="pill" style="background:#2b3431;color:#93d0bb">TRACK v3</span> badge per shot as soon as a
+  <code>.3de</code> file sits in such a <code>3de</code> folder.
+</div>
+
+<h2>Troubleshooting</h2>
+
+<h3>There is no ShotGrid in the File menu</h3>
+<p>3DE was not started from ShotGrid Desktop. Close 3DE and start it again from ShotGrid Desktop.</p>
+
+<h3>My task is not in File Open → My Tasks</h3>
+<p>
+  My Tasks only lists tasks assigned to you. Check in ShotGrid that you are in the task's
+  <em>Assigned To</em> field. Omitted and approved tasks are hidden. You can always find any task through
+  the <em>Shots</em> tab.
+</p>
+
+<h3>I click File → ShotGrid... and nothing happens</h3>
+<p>
+  The engine could not start. Send <code>%TEMP%\tk-3de4_debug.log</code> to the pipeline TD. If the first-time
+  install of the ShotGrid components failed, its log is
+  <code>%LOCALAPPDATA%\NFA\3de\pyside6\install_6.5.3.log</code>.
+</p>
+
+<h3>File Save puts the file in the wrong folder</h3>
+<p>Check the task at the top of the window. If it is wrong, pick the right task with File Open.</p>
+
+<footer>
+  NFA ShotGrid for 3DEqualizer (tk-3de4) · VFXIM Pipeline · Netherlands Film Academy · Luuk Kamphuis<br>
+  Something not working as described here? Let the pipeline TD know.
+</footer>
+
+</div>
+</body>
+</html>
