@@ -116,6 +116,17 @@ class TDE4Engine(sgtk.platform.Engine):
         except Exception:
             pass
         self.logger.info("tk-3de4 started in %s, context: %s", self.host_info["version"], self.context)
+        self._start_mcp_listener()
+
+    def _start_mcp_listener(self):
+        """Open the local 3DE MCP listener right away (tools: tk_3de4/mcp_listener.py),
+        so Claude can reach 3DE without opening the panel first. Never blocks startup."""
+        try:
+            self._ui_module()
+            from tk_3de4 import mcp_listener  # noqa: F401  (loaded from the tools path)
+            mcp_listener.start(self.logger)
+        except Exception as exc:
+            self.logger.debug("3DE MCP listener not started: %s", exc)
 
     # ------------------------------------------------------------------ afsluiten
     def _install_quit_guard(self):

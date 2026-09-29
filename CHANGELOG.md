@@ -10,6 +10,174 @@ Uses three-decimal versioning: `MAJOR.MINOR.PATCH`, same rules as the NFA Shot M
 - **MINOR** — a new feature or visible behavior change that stays backward compatible.
 - **MAJOR** — a breaking or structural change (config, folder layout, or a rebuild).
 
+
+## v1.0.2 — MCP at startup (engine)
+
+- The 3DE MCP listener (tools: `mcp_listener.py`) now opens when 3DE starts, so Claude can reach 3DE without opening the ShotGrid panel first.
+- Needs tools v1.10.0 or newer in `C:\pipeline\3de`; older tools are skipped silently.
+
+## v1.7.0 — Shot Prep (tools)
+
+By Luuk Kamphuis. Tools only (`C:/pipeline/3de`).
+
+- **Shot Prep**: a sanity check that walks you through preparing a shot for
+  tracking, one step at a time, with the next step highlighted and a button
+  for it: plate on the camera → denoised plate (switch to it, or Denoise in
+  Nuke) → first frame 1001 / 25 fps (Fix) → camera and lens data → lens
+  distortion (Lens Library) → buffer compression file → saved.
+- It asks for the data it needs: camera, scan mode, lens, focal length,
+  filmback width/height and pixel aspect. Applied to the lens in the wiki's
+  order (filmback height, width, pixel aspect) and stored with the shot in
+  `3de/shot_prep.json`; prefilled from the last camera used in the project.
+- **Opens by itself after Open Shot** when anything is missing, and from the
+  new **Shot Prep** button at any time.
+- **The panel no longer reappears after Open Shot**: it closes, and Shot Prep
+  takes over when there is something to do.
+- **Thumbnails are no longer rendered over and over**: only shots with a
+  plate, and each shot at most once per 3DE session (a shot without a usable
+  source never gets a thumbnail, so it was retried on every panel open).
+
+## v1.6.0 — Denoised plates (tools)
+
+By Luuk Kamphuis. Tools only (`C:/pipeline/3de`).
+
+- Tracking should run on a denoised plate. A plate counts as denoised when it
+  has a render in `02_source/<seq>/<shot>/<plate>/denoise/v###/`, named
+  `<plate>_denoised_v###.####.exr` (the word "denoise" in the path is what the
+  tools look for).
+- **Denoise in Nuke** (Load Plate): prepares
+  `denoise/v###/<plate>_denoise_v###.nk` — Read (raw) → a marked dot
+  *DENOISE_HERE* → Write (raw EXR, correct name and version) plus a sticky
+  note with the steps — and opens it in Nuke with the pipeline plugins. The
+  artist adds Neat Video > Reduce Noise at the dot, tunes it and renders. An
+  unrendered version folder is reused instead of adding empty versions.
+- **Load Plate** lists each plate as denoised vN or NOT DENOISED, uses the
+  newest denoised version by default (*Use the denoised plate*), and asks
+  whether to denoise first when there is none.
+- **Open Shot** starts a new track on the denoised plate when there is one.
+- **Shot list**: the plate badge is amber while a plate is not denoised and
+  green with "· DN" once every plate is; the tooltip lists each plate's state.
+- **Publish Track** check: *Tracked on a denoised plate* (CHECK when the
+  camera reads the raw plate).
+
+## v1.5.0 — Open Shot in one click (tools)
+
+By Luuk Kamphuis. Tools only (`C:/pipeline/3de`).
+
+- **Open Shot** replaces File Open and works like the NFA Shot Manager in Nuke:
+  double-click a shot (or select it and click Open Shot) and 3DE switches to its
+  Matchmove task and opens the newest track. When the shot has no track yet,
+  a new project is started, the shot's plate is loaded on the camera (1001,
+  25 fps, gamma 2.2, buffer compression file if there is one) and it is saved
+  as `…_work_main_v001.3de`. No File Open dialog, no clicks through tasks.
+- **Save New Version** replaces File Save: saves the open track as the next
+  version straight away (same name, v002, v003, …).
+- Under the hood both use the same pipeline template as ShotGrid Workfiles
+  (`tde4_shot_work`), so files land in the same place with the same names;
+  the Workfiles app itself stays installed.
+- Asks first when the open project has unsaved changes.
+
+## v1.4.0 — Publish Track, checks, Lens Library (tools)
+
+By Luuk Kamphuis. Tools only (`C:/pipeline/3de`).
+
+- **Publish Track** replaces Export to Nuke. One button, one version, the three
+  exports from the Matchmove wiki:
+  - the `.3de` project → `04_publish/…/<Step>/3de/…_pub_<name>_v###.3de`
+  - the camera for Maya via 3DE's own *Export Project > Maya* (start frame
+    1001, sequence camera only, no 3D models, cm) → `…/maya/…_cam_<name>_v###.py`
+  - the LD_3DE4 node for Nuke → `…/nuke/…_LD_<name>_<camera>_v###.nk`
+  The version is the open work file's. All three are registered as
+  PublishedFiles in ShotGrid, and the task goes to review (the first of
+  `rev`, `pndrev`, `pending_review` the site has).
+- **Checks before publishing**, on what the teacher grades: project saved,
+  camera point group, solved, first frame 1001, 25 fps, frame count equals the
+  plate, resolution. OK / CHECK / FIX per line; FIX blocks the publish unless
+  *Publish anyway* is ticked.
+- **Lens Library** (per project, `00_pipeline/3de/lenses/`): save a lens that
+  was calibrated on a lens grid (filmback, pixel aspect, lens centre, the
+  distortion model with all its parameters, 2D LUT samples for zoom lenses),
+  optionally with the grid project and its drawn lines. On another shot:
+  fill in camera / scan mode / lens / focal length (remembered per project;
+  the focal length comes from the current lens) and apply the best match to
+  the current camera with one click. Missing data (no camera, say) does not
+  count against an entry, so the choice falls back on what is known.
+  *Open grid project* opens the stored grid to refine it.
+- **Task status**: Waiting/Ready → In Progress when you open a shot from the
+  list or load a plate.
+- **Load Plate** imports the buffer compression file when there is one
+  (3DE's Python can import it, not create it) and otherwise reminds you of
+  *Playback > Export Buffer Compression File*.
+- `loadProject` / `saveProject` are called with R8's second argument.
+
+## v1.3.1 — My shots, no More button (tools)
+
+By Luuk Kamphuis.
+
+- The filter is called **My shots** again and is on by default.
+- A checked checkbox shows a white cross on the blue fill.
+- The **More** button is gone. In a project context it only held
+  "File Save...", which does not belong there: saving needs a task, because
+  the task decides the folder and the file name. File Save is now disabled
+  until a shot is open, like Load Plate and Export to Nuke.
+- File Open / File Save are found by name among all ShotGrid commands, not
+  only the favourites.
+- The context pill says **PROJECT · DOUBLE-CLICK A SHOT TO START** instead
+  of "no task", which read like an error.
+
+## v1.3.0 — Button motion like the Shot Manager (tools)
+
+By Luuk Kamphuis.
+
+- Every button in the ShotGrid window and the Load Plate dialog now moves
+  like the NFA Shot Manager's: it grows 6% under the pointer with a slight
+  overshoot and a soft shadow that lifts it, eases back more slowly when the
+  pointer leaves, and dips 3% when pressed. Ported one-on-one from the Shot
+  Manager's `HoverButton`, with the same timings (190 ms up, 260 ms back,
+  90 ms press).
+
+## v1.2.1 — Explorer button in folder yellow (tools)
+
+By Luuk Kamphuis.
+
+- The **Explorer** button has the warm yellow of the Windows folder icon
+  (toned down for the dark window), so it reads as "open a folder" at a glance.
+
+## v1.2.0 — One window (tools)
+
+By Luuk Kamphuis. Tools only (`C:/pipeline/3de`).
+
+- **The shot list is part of the ShotGrid window**: no separate Shot
+  Overview button or window, and no My Tasks section any more. Compact rows
+  (96×54 thumbnails), sequence filter, **Mine** (shots whose Matchmove task
+  is yours) and a refresh button.
+- **Single click selects, double-click opens** the shot (switches to its
+  Matchmove task and opens the newest track). Nothing opens by accident.
+- **The window keeps its shape**: the same four actions (File Open, File
+  Save, Load Plate, Export to Nuke) in the same place in every context;
+  buttons that need a shot are disabled instead of hidden. After switching
+  shots the window is rebuilt at the same position and size, with the same
+  filters.
+- **Thumbnail rendering is quiet**: no popup; a thin progress bar and a
+  **Skip** link in the status line at the bottom of the window.
+- The context card is compact (small thumbnail, sequence · shot, step and
+  task, open file); it picks up the shot's thumbnail as soon as it has been
+  rendered.
+- Who is on the Matchmove task sits next to the shot name, so the status
+  badges fit on one line. Other ShotGrid tools are under **More**.
+
+## v1.1.0 — Thumbnails in the ShotGrid panel (tools)
+
+By Luuk Kamphuis. Tools only (`C:/pipeline/3de`), no engine release needed.
+
+- The context card shows the shot's thumbnail next to its name, step and task.
+- **My Tasks** are rows with a thumbnail, sequence · shot · task and a step
+  badge, instead of plain buttons. Matchmove tasks have a green border.
+  Click a row to switch 3DE to that task.
+- Thumbnails are the NFA Shot Manager's (the same files as the Shot
+  Overview); a shot without one shows "no preview". Open the Shot Overview
+  to have missing ones rendered.
+
 ## v1.0.1 — First-start install no longer freezes 3DE
 
 By Luuk Kamphuis.
